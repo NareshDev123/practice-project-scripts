@@ -1,0 +1,42 @@
+pipeline {
+    agent {
+        label 'tomcat'
+    }
+
+    stages {
+        stage('checkout') {
+            steps {
+                git 'https://github.com/NareshDev123/jenkins-java-project.git'
+            }
+        }
+        stage('artifacts') {
+            steps {
+                script {
+                    def mavenHome = tool 'maven'
+                    def mvnCMD = "${mavenHome}/bin/mvn"
+                    sh "${mvnCMD} clean package"
+                }
+            }
+        }
+        stage('nexus') {
+            steps {
+                nexusArtifactUploader artifacts: [[artifactId: 'NETFLIX', classifier: '', file: 'target/NETFLIX-1.2.2.war', type: 'war']], credentialsId: 'nexus', groupId: 'in.RAHAM', nexusUrl: '13.201.38.238:8081', nexusVersion: 'nexus3', protocol: 'http', repository: 'netflix', version: '1.2.2'
+            }
+        }
+        stage('deploy') {
+            steps {
+                deploy(
+                    adapters: [
+                        tomcat9(
+                            credentialsId: '250bdfa5-01fa-4399-87fb-321cfe6f4944',
+                            path: '',
+                            url: 'http://13.233.140.161:8080/'
+                        )
+                    ],
+                    contextPath: 'netflix',
+                    war: 'target/*.war'
+                )
+            }
+        }
+    }
+}
